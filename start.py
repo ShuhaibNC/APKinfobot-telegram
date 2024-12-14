@@ -1,16 +1,17 @@
-from pyrogram import *
+from pyrogram import types
+from pyrogram import Client, __version__
+from pyrogram.raw.all import layer
+
 import config
 import logging
 from typing import Union, Optional, AsyncGenerator
-from pyrogram import types
 from aiohttp import web
 from plugins import web_server
 
 PORT = "8080"
 
-logging.basicConfig(level=logging.INFO)
-
-plugins = dict(root='plugins')
+logging.getLogger().setLevel(logging.INFO)
+logging.getLogger("pyrogram").setLevel(logging.ERROR)
 
 class Bot(Client):
 
@@ -21,10 +22,12 @@ class Bot(Client):
     api_hash=config.API_HASH,
     workers=700,
     bot_token=config.BOT_TOKEN,
-    plugins=plugins,
-    sleep_threshold=5,
-)
+    plugins= {"root": "plugins"},
+    sleep_threshold=5,)
+        
     async def start(self):
+            await super().start()
+            me = await self.get_me()
             app = web.AppRunner(await web_server())
             await app.setup()
             bind_address = "0.0.0.0"
@@ -72,7 +75,6 @@ class Bot(Client):
             for message in messages:
                 yield message
                 current += 1
-
 
 app = Bot()
 app.run()
