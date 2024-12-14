@@ -24,7 +24,7 @@ class Bot(Client):
     plugins=plugins,
     sleep_threshold=5,
 )
-        async def start(self):
+    async def start(self):
             app = web.AppRunner(await web_server())
             await app.setup()
             bind_address = "0.0.0.0"
