@@ -86,9 +86,10 @@ async def download_telegram_media(client, message):
             ]
         reply_markup = InlineKeyboardMarkup(buttons)
         await message.reply("\n\n**📃 APK ANALYZED REPORT 📃**\n\n**📂 File Name**: `{}`\n\n**📛 App Name: ** `{}`\n\n**📦 Package Name:** `{}`\n\n**🆚 Version Code: ** `{}`\n\n**🆚 Version Name: ** `{}`\n\n**🌆 Icon info: ** `{}`\n\n**#️⃣ MD5:** `{}`\n\n**#️⃣ SHA256:** `{}`".format(message.document.file_name, apk.application, apk.package, apk.version_code, apk.version_name, apk.icon_info, md5, sha), reply_markup=reply_markup)
-        print("Started full analyze...")
+        print("Started full analyze...", download_location)
         setfullreport(generate_apk_report(download_location))
-        print("Trying to delete file")
-        time.sleep(2)
+        print("Trying to delete file", download_location)
+        time.sleep(1)
         del_path(download_location)
+        print("Successfully deleted", download_location)
         
