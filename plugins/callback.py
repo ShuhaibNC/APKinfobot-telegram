@@ -6,7 +6,7 @@ import config
 import Script
 import os
 from func import *
-from .commands import get_image_data, getfullreport
+from .commands import get_image_data, getfullreport, del_path
 from io import BytesIO
 
 #callback handle
@@ -26,7 +26,7 @@ async def cb_handler(client: Client, query: CallbackQuery ):
             await query.answer("No image data available!", show_alert=True)
             return
     elif query.data == 'full_report':
-        out_name = "apkreport.txt"
+        out_name = query.from_user.id
         full_report = getfullreport()
         with open(out_name, "w", encoding="utf-8") as f:
             f.write(full_report)
