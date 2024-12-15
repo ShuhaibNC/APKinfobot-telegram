@@ -24,6 +24,16 @@ def setfullreport(data):
         _report_ = data
 def getfullreport():
     return _report_
+
+def del_path(path):
+     if not os.path.exists(path):
+         return
+     if os.path.isfile(path) or os.path.islink(path):
+         os.unlink(path)
+     else:
+         shutil.rmtree(path)
+
+
 #ping
 @Client.on_message(filters.command('ping') & filters.incoming)
 async def ping(client, message):
@@ -76,5 +86,9 @@ async def download_telegram_media(client, message):
             ]
         reply_markup = InlineKeyboardMarkup(buttons)
         await message.reply("\n\n**📃 APK ANALYZED REPORT 📃**\n\n**📂 File Name**: `{}`\n\n**📛 App Name: ** `{}`\n\n**📦 Package Name:** `{}`\n\n**🆚 Version Code: ** `{}`\n\n**🆚 Version Name: ** `{}`\n\n**🌆 Icon info: ** `{}`\n\n**#️⃣ MD5:** `{}`\n\n**#️⃣ SHA256:** `{}`".format(message.document.file_name, apk.application, apk.package, apk.version_code, apk.version_name, apk.icon_info, md5, sha), reply_markup=reply_markup)
+        print("Started full analyze...")
         setfullreport(generate_apk_report(download_location))
+        print("Trying to delete file")
+        time.sleep(2)
+        del_path(download_location)
         

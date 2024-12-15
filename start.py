@@ -11,7 +11,7 @@ from plugins import web_server
 PORT = "8080"
 
 logging.getLogger().setLevel(logging.INFO)
-logging.getLogger("pyrogram").setLevel(logging.ERROR)
+logging.getLogger("pyrogram").setLevel(logging.INFO)
 
 class Bot(Client):
 
