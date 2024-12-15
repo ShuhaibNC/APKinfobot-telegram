@@ -58,7 +58,7 @@ async def download_telegram_media(client, message):
 	  chat_id=message.chat.id,
 	  text='File started to download...'
 	)
-        analyze = await message.reply("📦 **Analyzing apk file...**")
+        analyze = await message.reply("📦 **Analyzing {}...**".format(message.document.file_name))
         start_time = time.time()
         download_location = await client.download_media(
         message=message,
