@@ -77,8 +77,8 @@ async def download_telegram_media(client, message):
         await analyze.delete()
 
         buttons = [
-            [InlineKeyboardButton('🌆 Launcher icon', callback_data='ic_launcher')],
-            [InlineKeyboardButton('📄 Full Report', callback_data='full_report')],
+            [InlineKeyboardButton('🌆 Launcher icon', callback_data='ic_launcher'),
+            InlineKeyboardButton('📄 Full Report', callback_data='full_report')],
             [InlineKeyboardButton('🦠 Virus Total', url=f"https://www.virustotal.com/gui/search/{md5}")]
         ]
         reply_markup = InlineKeyboardMarkup(buttons)
