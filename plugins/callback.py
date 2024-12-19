@@ -13,10 +13,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         image_data = get_image_data()
 
         if image_data:
-            async with client:
-                # Use in-memory BytesIO, and no need to set name manually unless necessary
-                n_image_data = BytesIO(image_data)
-                await client.send_photo(chat_id=query.message.chat.id, photo=n_image_data)
+            n_image_data = BytesIO(image_data)
+            await client.send_photo(chat_id=query.message.chat.id, photo=n_image_data)
         else:
             await query.answer("No image data available!", show_alert=True)
         return
@@ -27,9 +25,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         if full_report:
             # Write and send the full report asynchronously to avoid blocking
-            async with client:
-                await asyncio.to_thread(write_full_report, out_name, full_report)
-                await client.send_document(chat_id=query.message.chat.id, document=out_name, caption="FULL REPORT 📄")
+            await asyncio.to_thread(write_full_report, out_name, full_report)
+            await client.send_document(chat_id=query.message.chat.id, document=out_name, caption="FULL REPORT 📄")
 
             # Ensure the file is deleted after it's sent
             await asyncio.sleep(1)
