@@ -1,95 +1,116 @@
-from pyrogram import *
+from pyrogram import Client, filters
 from pyrogram.types import *
 import Script
 import time
 from pyaxmlparser import APK
-import math
 import os
-import subprocess
 from func import *
+import asyncio  # Added for async sleep and file handling
 
-_image_data = None  # Private variable
+_image_data = None
 _report_ = None
-# Function to set image_data
+
+# Use per-message context or database to avoid global variables, but if sticking to globals:
 def set_image_data(data):
-    global _image_data  # Use global to modify it
+    global _image_data
     _image_data = data
 
-# Function to get image_data
 def get_image_data():
     return _image_data
 
 def setfullreport(data):
-        global _report_
-        _report_ = data
+    global _report_
+    _report_ = data
+
 def getfullreport():
     return _report_
 
-def del_path(path):
-     if not os.path.exists(path):
-         return
-     if os.path.isfile(path) or os.path.islink(path):
-         os.unlink(path)
-     else:
-         shutil.rmtree(path)
-
+# Asynchronous file deletion to avoid blocking
+async def del_path(path):
+    if not os.path.exists(path):
+        return
+    if os.path.isfile(path) or os.path.islink(path):
+        await asyncio.to_thread(os.unlink, path)  # Non-blocking deletion
+    else:
+        await asyncio.to_thread(shutil.rmtree, path)  # Non-blocking directory removal
 
 #ping
 @Client.on_message(filters.command('ping') & filters.incoming)
 async def ping(client, message):
-                start_time = time.time()
-                m = await message.reply('Pinging....')
-                end_time = time.time()
-                elapsed_time = (end_time - start_time) * 1000
-                await m.edit(f'Pong!\n{elapsed_time:.3f}ms')
-                
+    start_time = time.time()
+    m = await message.reply('Pinging....')
+    end_time = time.time()
+    elapsed_time = (end_time - start_time) * 1000
+    await m.edit(f'Pong!\n{elapsed_time:.3f}ms')
+
 @Client.on_message(filters.command('start') & filters.incoming)
 async def start(client, message):
-                await message.reply(Script.START_TEXT)
-                
+    await message.reply(Script.START_TEXT)
+
 @Client.on_message(filters.command('help') & filters.incoming)
 async def help(client, message):
-                await message.reply(Script.HELP_TEXT)
-
+    await message.reply(Script.HELP_TEXT)
 
 @Client.on_message(filters.document)
 async def download_telegram_media(client, message):
-        msg = await client.send_message(
-	  chat_id=message.chat.id,
-	  text='File started to download...'
-	)
-        analyze = await message.reply("📦 **Analyzing {}...**".format(message.document.file_name))
-        start_time = time.time()
-        download_location = await client.download_media(
+    msg = await client.send_message(
+        chat_id=message.chat.id,
+        text='File started to download...'
+    )
+    analyze = await message.reply(f"📦 **Analyzing {message.document.file_name}...**")
+    
+    # Non-blocking media download
+    start_time = time.time()
+    download_location = await client.download_media(
         message=message,
         file_name='./',
         progress=progress
-        )
-        await msg.delete()
+    )
+    
+    await msg.delete()
+    
+    try:
         apk = APK(download_location)
-        md5 = calculate_md5(download_location)
-        sha = calculate_sha256(download_location)
-        
+        md5, sha = calculate_hashes(download_location)
+
         set_image_data(apk.icon_data)
-        
         await analyze.delete()
+
         buttons = [
-            [
-                InlineKeyboardButton('🌆 Launcher icon ', callback_data='ic_launcher')
-            ],
-            [
-                InlineKeyboardButton('📄 Full Report ', callback_data='full_report')
-                ],
-            [
-                InlineKeyboardButton('🦠 Virus Total', url=f"https://www.virustotal.com/gui/search/{md5}"),
-            ]
-            ]
+            [InlineKeyboardButton('🌆 Launcher icon', callback_data='ic_launcher')],
+            [InlineKeyboardButton('📄 Full Report', callback_data='full_report')],
+            [InlineKeyboardButton('🦠 Virus Total', url=f"https://www.virustotal.com/gui/search/{md5}")]
+        ]
         reply_markup = InlineKeyboardMarkup(buttons)
-        await message.reply("\n\n**📃 APK ANALYZED REPORT 📃**\n\n**📂 File Name**: `{}`\n\n**📛 App Name: ** `{}`\n\n**📦 Package Name:** `{}`\n\n**🆚 Version Code: ** `{}`\n\n**🆚 Version Name: ** `{}`\n\n**🌆 Icon info: ** `{}`\n\n**#️⃣ MD5:** `{}`\n\n**#️⃣ SHA256:** `{}`".format(message.document.file_name, apk.application, apk.package, apk.version_code, apk.version_name, apk.icon_info, md5, sha), reply_markup=reply_markup)
-        print("Started full analyze...", download_location)
-        setfullreport(generate_apk_report(download_location))
-        print("Trying to delete file", download_location)
-        time.sleep(1)
-        del_path(download_location)
-        print("Successfully deleted", download_location)
-        
+
+        # APK Report Reply
+        await message.reply(
+            f"\n\n**📃 APK ANALYZED REPORT 📃**\n\n"
+            f"**📂 File Name**: `{message.document.file_name}`\n\n"
+            f"**📛 App Name:** `{apk.application}`\n\n"
+            f"**📦 Package Name:** `{apk.package}`\n\n"
+            f"**🆚 Version Code:** `{apk.version_code}`\n\n"
+            f"**🆚 Version Name:** `{apk.version_name}`\n\n"
+            f"**🌆 Icon info:** `{apk.icon_info}`\n\n"
+            f"**#️⃣ MD5:** `{md5}`\n\n"
+            f"**#️⃣ SHA256:** `{sha}`",
+            reply_markup=reply_markup
+        )
+
+        # Move report generation to background task to avoid blocking
+        asyncio.create_task(process_and_cleanup(download_location))
+
+    except Exception as e:
+        await message.reply(f"Error analyzing APK: {e}")
+        print(f"Error: {e}")
+
+# Move full report generation and cleanup to a background task
+async def process_and_cleanup(download_location):
+    print("Started full analyze...", download_location)
+    setfullreport(generate_apk_report(download_location))
+    print("Trying to delete file", download_location)
+
+    # Non-blocking sleep and delete
+    await asyncio.sleep(1)
+    await del_path(download_location)
+    print("Successfully deleted", download_location)
