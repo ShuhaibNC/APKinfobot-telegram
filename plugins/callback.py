@@ -2,7 +2,7 @@ from pyrogram import Client
 from pyrogram.types import CallbackQuery
 import asyncio
 import os
-from .commands import get_image_data, getfullreport
+from .commands import appstate
 from io import BytesIO
 
 # Handle callback queries
@@ -10,7 +10,7 @@ from io import BytesIO
 async def cb_handler(client: Client, query: CallbackQuery):
     if query.data == 'ic_launcher':
         ic_out_name = f"{query.from_user.id}.jpg"
-        image_data = get_image_data()
+        image_data = appstate._image_data
 
         if image_data:
             n_image_data = BytesIO(image_data)
@@ -21,7 +21,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
     elif query.data == 'full_report':
         out_name = f"{query.from_user.id}.txt"
-        full_report = getfullreport()
+        full_report = appstate._report_
 
         if full_report:
             # Write and send the full report asynchronously to avoid blocking

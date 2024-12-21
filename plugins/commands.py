@@ -4,26 +4,16 @@ import Script
 import time
 from pyaxmlparser import APK
 import os
-from func import *
-import asyncio  # Added for async sleep and file handling
+from func import calculate_hashes, generate_apk_report, progress
+import asyncio 
+import shutil
 
-_image_data = None
-_report_ = None
-
-# Use per-message context or database to avoid global variables, but if sticking to globals:
-def set_image_data(data):
-    global _image_data
-    _image_data = data
-
-def get_image_data():
-    return _image_data
-
-def setfullreport(data):
-    global _report_
-    _report_ = data
-
-def getfullreport():
-    return _report_
+class Appstate:
+    def __init__(self):
+        self._image_data = None
+        self._report_ = None
+        
+appstate = Appstate()
 
 # Asynchronous file deletion to avoid blocking
 async def del_path(path):
@@ -60,7 +50,6 @@ async def download_telegram_media(client, message):
     analyze = await message.reply(f"📦 **Analyzing {message.document.file_name}...**")
     
     # Non-blocking media download
-    start_time = time.time()
     download_location = await client.download_media(
         message=message,
         file_name='./',
@@ -73,7 +62,7 @@ async def download_telegram_media(client, message):
         apk = APK(download_location)
         md5, sha = calculate_hashes(download_location)
 
-        set_image_data(apk.icon_data)
+        appstate._image_data = apk.icon_data
         await analyze.delete()
 
         buttons = [
@@ -107,7 +96,7 @@ async def download_telegram_media(client, message):
 # Move full report generation and cleanup to a background task
 async def process_and_cleanup(download_location):
     print("Started full analyze...", download_location)
-    setfullreport(generate_apk_report(download_location))
+    appstate._report_ = generate_apk_report(download_location)
     print("Trying to delete file", download_location)
 
     # Non-blocking sleep and delete
